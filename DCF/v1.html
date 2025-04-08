@@ -436,7 +436,7 @@
         displayDCFResults(dcfResults, companyProfile);
         
         // Display financial metrics
-        displayFinancialMetrics(financialRatios, keyMetrics, growth);
+        displayFinancialMetrics(financialRatios, keyMetrics, growth, incomeStatements, companyProfile, balanceSheets);
         
         // Display investment considerations
         displayInvestmentConsiderations(companyProfile, financialRatios, keyMetrics, growth, dcfResults);
@@ -732,17 +732,49 @@
       `;
     }
     
-    function displayFinancialMetrics(financialRatios, keyMetrics, growth) {
-      // Display valuation ratios
+    function displayFinancialMetrics(financialRatios, keyMetrics, growth, incomeStatements, companyProfile, balanceSheets) {
+      // Get the latest data from each dataset
       const latestRatios = financialRatios[0];
+      const latestKeyMetrics = keyMetrics[0];
+      const latestGrowth = growth[0];
+      const latestIncomeStatement = incomeStatements[0];
+      const latestBalanceSheet = balanceSheets[0];
+      
+      // Calculate P/E ratio if it's not available directly
+      let peRatio = latestRatios.peRatio;
+      if (!peRatio || isNaN(peRatio) || peRatio === null) {
+        // Calculate P/E ratio manually
+        const eps = latestIncomeStatement.netIncome / latestIncomeStatement.weightedAverageShsOut;
+        if (eps > 0) {
+          peRatio = companyProfile.price / eps;
+        }
+      }
+      
+      // Calculate EV/EBITDA if it's not available directly
+      let evToEbitda = latestRatios.enterpriseValueOverEBITDA;
+      if (!evToEbitda || isNaN(evToEbitda) || evToEbitda === null) {
+        // Calculate Enterprise Value
+        const marketCap = companyProfile.mktCap;
+        const totalDebt = latestBalanceSheet.totalDebt || 0;
+        const cashAndEquivalents = latestBalanceSheet.cashAndCashEquivalents || 0;
+        const enterpriseValue = marketCap + totalDebt - cashAndEquivalents;
+        
+        // Calculate EBITDA
+        const ebitda = latestIncomeStatement.ebitda;
+        if (ebitda && ebitda > 0) {
+          evToEbitda = enterpriseValue / ebitda;
+        }
+      }
+      
+      // Display valuation ratios
       valuationRatios.innerHTML = `
         <div class="metric-card">
           <div class="metric-label">P/E Ratio</div>
-          <div class="metric-value">${latestRatios.peRatio ? latestRatios.peRatio.toFixed(2) : 'N/A'}</div>
+          <div class="metric-value">${peRatio && !isNaN(peRatio) ? peRatio.toFixed(2) : 'N/A'}</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">EV/EBITDA</div>
-          <div class="metric-value">${latestRatios.enterpriseValueOverEBITDA ? latestRatios.enterpriseValueOverEBITDA.toFixed(2) : 'N/A'}</div>
+          <div class="metric-value">${evToEbitda && !isNaN(evToEbitda) ? evToEbitda.toFixed(2) : 'N/A'}</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">P/B Ratio</div>
@@ -774,12 +806,14 @@
         </div>
         <div class="metric-card">
           <div class="metric-label">ROIC</div>
-          <div class="metric-value">${(latestRatios.returnOnInvestedCapital * 100).toFixed(2)}%</div>
+          <div class="metric-value">${
+            latestRatios.returnOnInvestedCapital && !isNaN(latestRatios.returnOnInvestedCapital) ? 
+            (latestRatios.returnOnInvestedCapital * 100).toFixed(2) + '%' : 'N/A'
+          }</div>
         </div>
       `;
       
       // Display growth metrics
-      const latestGrowth = growth[0];
       growthMetrics.innerHTML = `
         <div class="metric-card">
           <div class="metric-label">Revenue Growth (YoY)</div>
