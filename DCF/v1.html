@@ -70,7 +70,8 @@
       margin: 0 auto;
     }
     
-    input[type="text"] {
+    input[type="text"],
+    input[type="number"] {
       flex: 1;
       padding: 12px 15px;
       border: 1px solid var(--border-color);
@@ -79,7 +80,8 @@
       outline: none;
     }
     
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="number"]:focus {
       border-color: var(--secondary-color);
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
     }
@@ -295,6 +297,33 @@
       background-color: #fef9c3;
       border: 1px solid #fde047;
     }
+    
+    .parameter-editor {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .parameter-editor label {
+      min-width: 200px;
+      font-weight: 500;
+    }
+    
+    .parameter-editor input {
+      width: 100px;
+    }
+    
+    .recalculate-btn {
+      background-color: var(--primary-color);
+      margin-top: 15px;
+    }
+    
+    .original-value {
+      color: #6b7280;
+      font-size: 14px;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -336,6 +365,19 @@
         
         <div class="analysis-card">
           <h3>DCF Calculation Details</h3>
+          <div id="dcfParameterEditor">
+            <div class="parameter-editor">
+              <label for="waccInput">WACC (%)</label>
+              <input type="number" id="waccInput" min="1" max="30" step="0.1">
+              <span class="original-value" id="originalWacc"></span>
+            </div>
+            <div class="parameter-editor">
+              <label for="terminalGrowthRateInput">Terminal Growth Rate (%)</label>
+              <input type="number" id="terminalGrowthRateInput" min="0" max="10" step="0.1">
+              <span class="original-value" id="originalTerminalGrowthRate"></span>
+            </div>
+            <button id="recalculateBtn" class="recalculate-btn">Recalculate DCF</button>
+          </div>
           <table class="metrics-table" id="dcfDetailsTable">
             <!-- DCF details will be inserted here -->
           </table>
@@ -393,6 +435,21 @@
     const profitabilityMetrics = document.getElementById("profitabilityMetrics");
     const growthMetrics = document.getElementById("growthMetrics");
     const investmentConsiderations = document.getElementById("investmentConsiderations");
+    const waccInput = document.getElementById("waccInput");
+    const terminalGrowthRateInput = document.getElementById("terminalGrowthRateInput");
+    const recalculateBtn = document.getElementById("recalculateBtn");
+    const originalWacc = document.getElementById("originalWacc");
+    const originalTerminalGrowthRate = document.getElementById("originalTerminalGrowthRate");
+    
+    // Global variables to store data for recalculation
+    let currentTicker = "";
+    let storedIncomeStatements = [];
+    let storedCashFlowStatements = [];
+    let storedBalanceSheets = [];
+    let storedCompanyProfile = {};
+    let storedFinancialRatios = [];
+    let storedKeyMetrics = [];
+    let storedGrowth = [];
     
     // Event Listeners
     analyzeBtn.addEventListener("click", performAnalysis);
@@ -401,6 +458,7 @@
         performAnalysis();
       }
     });
+    recalculateBtn.addEventListener("click", recalculateDCF);
     
     // Main analysis function
     async function performAnalysis() {
@@ -410,6 +468,8 @@
         showError("Please enter a valid stock ticker.");
         return;
       }
+      
+      currentTicker = ticker;
       
       // Reset UI
       resetUI();
@@ -428,12 +488,27 @@
             fetchGrowthMetrics(ticker)
           ]);
         
+        // Store data for recalculation
+        storedCompanyProfile = companyProfile;
+        storedIncomeStatements = incomeStatements;
+        storedCashFlowStatements = cashFlowStatements;
+        storedBalanceSheets = balanceSheets;
+        storedFinancialRatios = financialRatios;
+        storedKeyMetrics = keyMetrics;
+        storedGrowth = growth;
+        
         // Process and display data
         displayCompanyOverview(companyProfile);
         
         // Perform DCF analysis
         const dcfResults = performDCFAnalysis(ticker, incomeStatements, cashFlowStatements, balanceSheets, companyProfile);
         displayDCFResults(dcfResults, companyProfile);
+        
+        // Set initial values for parameter editor
+        waccInput.value = dcfResults.wacc.toFixed(2);
+        terminalGrowthRateInput.value = dcfResults.terminalGrowthRate.toFixed(2);
+        originalWacc.textContent = `(Original: ${dcfResults.wacc.toFixed(2)}%)`;
+        originalTerminalGrowthRate.textContent = `(Original: ${dcfResults.terminalGrowthRate.toFixed(2)}%)`;
         
         // Display financial metrics
         displayFinancialMetrics(financialRatios, keyMetrics, growth, incomeStatements, companyProfile, balanceSheets);
@@ -448,6 +523,48 @@
         showError(`Failed to analyze ${ticker}: ${error.message || "Unknown error"}`);
       } finally {
         showLoading(false);
+      }
+    }
+    
+    // Function to recalculate DCF with user-defined parameters
+    function recalculateDCF() {
+      if (!currentTicker) return;
+      
+      const userWacc = parseFloat(waccInput.value);
+      const userTerminalGrowthRate = parseFloat(terminalGrowthRateInput.value);
+      
+      if (isNaN(userWacc) || isNaN(userTerminalGrowthRate)) {
+        showError("Please enter valid numbers for WACC and Terminal Growth Rate.");
+        return;
+      }
+      
+      try {
+        // Perform DCF analysis with custom parameters
+        const dcfResults = performDCFAnalysisWithCustomParams(
+          currentTicker, 
+          storedIncomeStatements, 
+          storedCashFlowStatements, 
+          storedBalanceSheets, 
+          storedCompanyProfile,
+          userWacc / 100, // Convert from percentage to decimal
+          userTerminalGrowthRate / 100 // Convert from percentage to decimal
+        );
+        
+        // Update DCF results display
+        displayDCFResults(dcfResults, storedCompanyProfile);
+        
+        // Update investment considerations
+        displayInvestmentConsiderations(
+          storedCompanyProfile, 
+          storedFinancialRatios, 
+          storedKeyMetrics, 
+          storedGrowth, 
+          dcfResults
+        );
+        
+      } catch (error) {
+        console.error("Recalculation error:", error);
+        showError(`Failed to recalculate DCF: ${error.message || "Unknown error"}`);
       }
     }
     
@@ -529,8 +646,28 @@
       return data;
     }
     
-    // DCF Analysis function
+    // DCF Analysis function with default parameters
     function performDCFAnalysis(ticker, incomeStatements, cashFlowStatements, balanceSheets, companyProfile) {
+      // Call the custom params version with auto-calculated defaults
+      return performDCFAnalysisWithCustomParams(
+        ticker, 
+        incomeStatements, 
+        cashFlowStatements, 
+        balanceSheets, 
+        companyProfile
+      );
+    }
+    
+    // DCF Analysis function with custom parameters
+    function performDCFAnalysisWithCustomParams(
+      ticker, 
+      incomeStatements, 
+      cashFlowStatements, 
+      balanceSheets, 
+      companyProfile,
+      customWacc = null,
+      customTerminalGrowthRate = null
+    ) {
       // Extract historical free cash flows
       const historicalFCF = cashFlowStatements.map((statement, index) => {
         // Free Cash Flow = Operating Cash Flow - Capital Expenditures
@@ -556,33 +693,41 @@
       
       // For projections, we'll gradually reduce the growth rate over time
       const projectionYears = 5;
-      const terminalGrowthRate = 0.025; // 2.5% long-term growth assumption
       
-      // Calculate WACC (Weighted Average Cost of Capital)
-      // This is simplified - in practice would need more data
-      const riskFreeRate = 0.035; // 3.5% Treasury yield assumption
-      const marketRiskPremium = 0.06; // 6% market risk premium assumption
-      const beta = companyProfile.beta || 1.0;
-      const equityRatio = 0.7; // Assumption about capital structure
-      const debtRatio = 0.3;
-      const taxRate = 0.21; // US corporate tax rate
+      // Use custom terminal growth rate if provided, otherwise use default
+      const terminalGrowthRate = customTerminalGrowthRate !== null ? customTerminalGrowthRate : 0.025; // 2.5% long-term growth assumption
       
-      const costOfEquity = riskFreeRate + beta * marketRiskPremium;
+      // Calculate WACC (Weighted Average Cost of Capital) if not provided
+      let wacc;
       
-      // Cost of debt - estimate from financial statements
-      let interestExpense = 0;
-      let totalDebt = 0;
-      
-      if (incomeStatements.length > 0 && balanceSheets.length > 0) {
-        interestExpense = incomeStatements[0].interestExpense || 0;
-        totalDebt = balanceSheets[0].totalDebt || 0;
+      if (customWacc !== null) {
+        wacc = customWacc;
+      } else {
+        // This is simplified - in practice would need more data
+        const riskFreeRate = 0.035; // 3.5% Treasury yield assumption
+        const marketRiskPremium = 0.06; // 6% market risk premium assumption
+        const beta = companyProfile.beta || 1.0;
+        const equityRatio = 0.7; // Assumption about capital structure
+        const debtRatio = 0.3;
+        const taxRate = 0.21; // US corporate tax rate
+        
+        const costOfEquity = riskFreeRate + beta * marketRiskPremium;
+        
+        // Cost of debt - estimate from financial statements
+        let interestExpense = 0;
+        let totalDebt = 0;
+        
+        if (incomeStatements.length > 0 && balanceSheets.length > 0) {
+          interestExpense = incomeStatements[0].interestExpense || 0;
+          totalDebt = balanceSheets[0].totalDebt || 0;
+        }
+        
+        const costOfDebt = totalDebt > 0 ? Math.abs(interestExpense / totalDebt) : 0.04;
+        const afterTaxCostOfDebt = costOfDebt * (1 - taxRate);
+        
+        // Calculate WACC
+        wacc = (equityRatio * costOfEquity) + (debtRatio * afterTaxCostOfDebt);
       }
-      
-      const costOfDebt = totalDebt > 0 ? Math.abs(interestExpense / totalDebt) : 0.04;
-      const afterTaxCostOfDebt = costOfDebt * (1 - taxRate);
-      
-      // Calculate WACC
-      const wacc = (equityRatio * costOfEquity) + (debtRatio * afterTaxCostOfDebt);
       
       // Project future cash flows
       const projectedFCF = [];
@@ -919,6 +1064,21 @@
         considerations.push({
           title: "Low Debt Levels",
           description: `The company has a conservative debt-to-equity ratio of ${latestRatios.debtToEquity.toFixed(2)}x.`
+        });
+      }
+      
+      // Assumptions considerations for custom parameters
+      if (parseFloat(waccInput.value) !== parseFloat(originalWacc.textContent.replace(/[()Original: %]/g, ''))) {
+        considerations.push({
+          title: "Custom WACC Assumption",
+          description: `The analysis uses a custom WACC of ${parseFloat(waccInput.value).toFixed(2)}% instead of the estimated ${originalWacc.textContent.replace(/[()Original: ]/g, '')}.`
+        });
+      }
+      
+      if (parseFloat(terminalGrowthRateInput.value) !== parseFloat(originalTerminalGrowthRate.textContent.replace(/[()Original: %]/g, ''))) {
+        considerations.push({
+          title: "Custom Terminal Growth Rate",
+          description: `The analysis uses a custom terminal growth rate of ${parseFloat(terminalGrowthRateInput.value).toFixed(2)}% instead of the default ${originalTerminalGrowthRate.textContent.replace(/[()Original: ]/g, '')}.`
         });
       }
       
