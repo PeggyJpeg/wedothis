@@ -1,1133 +1,1745 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock DCF Analysis Tool</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary-color: #1e3a8a;
-      --secondary-color: #3b82f6;
-      --text-color: #333;
-      --light-gray: #f3f4f6;
-      --border-color: #e5e7eb;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: 'Roboto', sans-serif;
-      line-height: 1.6;
-      color: var(--text-color);
-      background-color: #f9fafb;
-      padding: 20px;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-    
-    header {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 20px 30px;
-      text-align: center;
-    }
-    
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    
-    .description {
-      font-size: 16px;
-      opacity: 0.9;
-    }
-    
-    .input-section {
-      padding: 30px;
-      background-color: white;
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    .form-group {
-      display: flex;
-      gap: 15px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    input[type="text"],
-    input[type="number"] {
-      flex: 1;
-      padding: 12px 15px;
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-      font-size: 16px;
-      outline: none;
-    }
-    
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-      border-color: var(--secondary-color);
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    }
-    
-    button {
-      background-color: var(--secondary-color);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      padding: 12px 25px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    button:hover {
-      background-color: #2563eb;
-    }
-    
-    button:disabled {
-      background-color: #93c5fd;
-      cursor: not-allowed;
-    }
-    
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 30px;
-    }
-    
-    .spinner {
-      border: 4px solid rgba(0, 0, 0, 0.1);
-      border-left-color: var(--secondary-color);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .error-message {
-      display: none;
-      color: var(--danger-color);
-      background-color: #fee2e2;
-      padding: 15px;
-      border-radius: 5px;
-      margin: 20px auto;
-      max-width: 800px;
-      text-align: center;
-    }
-    
-    .results-section {
-      display: none;
-      padding: 30px;
-    }
-    
-    .company-overview {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    .company-logo {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-    }
-    
-    .company-info h2 {
-      font-size: 24px;
-      margin-bottom: 5px;
-    }
-    
-    .company-info p {
-      color: #6b7280;
-      margin-bottom: 3px;
-    }
-    
-    .current-price {
-      font-size: 22px;
-      font-weight: 700;
-      margin-top: 8px;
-    }
-    
-    .section-title {
-      font-size: 20px;
-      margin: 30px 0 15px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--light-gray);
-    }
-    
-    .analysis-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
-    }
-    
-    .analysis-card {
-      background-color: white;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .analysis-card h3 {
-      font-size: 18px;
-      margin-bottom: 15px;
-      color: var(--primary-color);
-    }
-    
-    .metrics-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .metrics-table th, .metrics-table td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    .metrics-table th {
-      background-color: var(--light-gray);
-      font-weight: 500;
-    }
-    
-    .value-positive {
-      color: var(--success-color);
-      font-weight: 500;
-    }
-    
-    .value-negative {
-      color: var(--danger-color);
-      font-weight: 500;
-    }
-    
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-    
-    .metric-card {
-      background-color: var(--light-gray);
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    
-    .metric-value {
-      font-size: 20px;
-      font-weight: 700;
-      margin: 5px 0;
-    }
-    
-    .metric-label {
-      font-size: 14px;
-      color: #6b7280;
-    }
-    
-    .chart-container {
-      width: 100%;
-      height: 300px;
-      margin-top: 20px;
-    }
-    
-    .investment-considerations {
-      margin-top: 30px;
-      background-color: #f8fafc;
-      border-radius: 8px;
-      padding: 20px;
-    }
-    
-    .consideration-item {
-      margin-bottom: 15px;
-    }
-    
-    .consideration-item h4 {
-      font-weight: 500;
-      margin-bottom: 5px;
-    }
-
-    #valuationSummary {
-      margin: 20px 0;
-      padding: 25px;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 18px;
-    }
-
-    .undervalued {
-      background-color: #dcfce7;
-      border: 1px solid #86efac;
-    }
-
-    .overvalued {
-      background-color: #fee2e2;
-      border: 1px solid #fca5a5;
-    }
-
-    .fairly-valued {
-      background-color: #fef9c3;
-      border: 1px solid #fde047;
-    }
-    
-    .parameter-editor {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    
-    .parameter-editor label {
-      min-width: 200px;
-      font-weight: 500;
-    }
-    
-    .parameter-editor input {
-      width: 100px;
-    }
-    
-    .recalculate-btn {
-      background-color: var(--primary-color);
-      margin-top: 15px;
-    }
-    
-    .original-value {
-      color: #6b7280;
-      font-size: 14px;
-      margin-left: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Professional Stock DCF Analysis Tool</h1>
-      <p class="description">Enter a stock ticker to get a comprehensive Discounted Cash Flow analysis and investment metrics</p>
-    </header>
-    
-    <div class="input-section">
-      <div class="form-group">
-        <input type="text" id="tickerInput" placeholder="Enter stock ticker (e.g., AAPL)" autocapitalize="characters">
-        <button id="analyzeBtn">Analyze</button>
-      </div>
-    </div>
-    
-    <div class="loading" id="loadingSection">
-      <div class="spinner"></div>
-      <p>Fetching and analyzing financial data...</p>
-    </div>
-    
-    <div class="error-message" id="errorMessage"></div>
-    
-    <div class="results-section" id="resultsSection">
-      <div class="company-overview" id="companyOverview">
-        <!-- Company info will be inserted here -->
-      </div>
-      
-      <div id="valuationSummary"></div>
-      
-      <h2 class="section-title">DCF Analysis Results</h2>
-      <div class="analysis-grid">
-        <div class="analysis-card">
-          <h3>Intrinsic Value Estimate</h3>
-          <div class="metrics-grid" id="intrinsicValueMetrics">
-            <!-- Intrinsic value metrics will be inserted here -->
-          </div>
-        </div>
-        
-        <div class="analysis-card">
-          <h3>DCF Calculation Details</h3>
-          <div id="dcfParameterEditor">
-            <div class="parameter-editor">
-              <label for="waccInput">WACC (%)</label>
-              <input type="number" id="waccInput" min="1" max="30" step="0.1">
-              <span class="original-value" id="originalWacc"></span>
-            </div>
-            <div class="parameter-editor">
-              <label for="terminalGrowthRateInput">Terminal Growth Rate (%)</label>
-              <input type="number" id="terminalGrowthRateInput" min="0" max="10" step="0.1">
-              <span class="original-value" id="originalTerminalGrowthRate"></span>
-            </div>
-            <button id="recalculateBtn" class="recalculate-btn">Recalculate DCF</button>
-          </div>
-          <table class="metrics-table" id="dcfDetailsTable">
-            <!-- DCF details will be inserted here -->
-          </table>
-        </div>
-      </div>
-      
-      <h2 class="section-title">Financial Metrics & Ratios</h2>
-      <div class="analysis-grid">
-        <div class="analysis-card">
-          <h3>Valuation Ratios</h3>
-          <div class="metrics-grid" id="valuationRatios">
-            <!-- Valuation ratios will be inserted here -->
-          </div>
-        </div>
-        
-        <div class="analysis-card">
-          <h3>Profitability Metrics</h3>
-          <div class="metrics-grid" id="profitabilityMetrics">
-            <!-- Profitability metrics will be inserted here -->
-          </div>
-        </div>
-        
-        <div class="analysis-card">
-          <h3>Growth Metrics</h3>
-          <div class="metrics-grid" id="growthMetrics">
-            <!-- Growth metrics will be inserted here -->
-          </div>
-        </div>
-      </div>
-      
-      <div class="investment-considerations" id="investmentConsiderations">
-        <h2 class="section-title">Investment Considerations</h2>
-        <!-- Investment considerations will be inserted here -->
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    // Constants
-    const API_KEY = "hQC5T9ehWTI6XB0kQ6enPU5YslmIa5wN"; // Financial Modeling Prep API key
-    const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
-    
-    // DOM Elements
-    const tickerInput = document.getElementById("tickerInput");
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const loadingSection = document.getElementById("loadingSection");
-    const errorMessage = document.getElementById("errorMessage");
-    const resultsSection = document.getElementById("resultsSection");
-    const companyOverview = document.getElementById("companyOverview");
-    const valuationSummary = document.getElementById("valuationSummary");
-    const intrinsicValueMetrics = document.getElementById("intrinsicValueMetrics");
-    const dcfDetailsTable = document.getElementById("dcfDetailsTable");
-    const valuationRatios = document.getElementById("valuationRatios");
-    const profitabilityMetrics = document.getElementById("profitabilityMetrics");
-    const growthMetrics = document.getElementById("growthMetrics");
-    const investmentConsiderations = document.getElementById("investmentConsiderations");
-    const waccInput = document.getElementById("waccInput");
-    const terminalGrowthRateInput = document.getElementById("terminalGrowthRateInput");
-    const recalculateBtn = document.getElementById("recalculateBtn");
-    const originalWacc = document.getElementById("originalWacc");
-    const originalTerminalGrowthRate = document.getElementById("originalTerminalGrowthRate");
-    
-    // Global variables to store data for recalculation
-    let currentTicker = "";
-    let storedIncomeStatements = [];
-    let storedCashFlowStatements = [];
-    let storedBalanceSheets = [];
-    let storedCompanyProfile = {};
-    let storedFinancialRatios = [];
-    let storedKeyMetrics = [];
-    let storedGrowth = [];
-    
-    // Event Listeners
-    analyzeBtn.addEventListener("click", performAnalysis);
-    tickerInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        performAnalysis();
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>DCF Analysis Tool</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #1e3a8a;
+        --secondary: #3b82f6;
+        --text: #333;
+        --light-gray: #f3f4f6;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
       }
-    });
-    recalculateBtn.addEventListener("click", recalculateDCF);
-    
-    // Main analysis function
-    async function performAnalysis() {
-      const ticker = tickerInput.value.trim().toUpperCase();
-      
-      if (!ticker) {
-        showError("Please enter a valid stock ticker.");
-        return;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-      
-      currentTicker = ticker;
-      
-      // Reset UI
-      resetUI();
-      showLoading(true);
-      
-      try {
-        // Fetch all required data in parallel
-        const [companyProfile, financialRatios, incomeStatements, cashFlowStatements, balanceSheets, keyMetrics, growth] = 
-          await Promise.all([
-            fetchCompanyProfile(ticker),
-            fetchFinancialRatios(ticker),
-            fetchIncomeStatements(ticker),
-            fetchCashFlowStatements(ticker),
-            fetchBalanceSheets(ticker),
-            fetchKeyMetrics(ticker),
-            fetchGrowthMetrics(ticker)
-          ]);
-        
-        // Store data for recalculation
-        storedCompanyProfile = companyProfile;
-        storedIncomeStatements = incomeStatements;
-        storedCashFlowStatements = cashFlowStatements;
-        storedBalanceSheets = balanceSheets;
-        storedFinancialRatios = financialRatios;
-        storedKeyMetrics = keyMetrics;
-        storedGrowth = growth;
-        
-        // Process and display data
-        displayCompanyOverview(companyProfile);
-        
-        // Perform DCF analysis
-        const dcfResults = performDCFAnalysis(ticker, incomeStatements, cashFlowStatements, balanceSheets, companyProfile);
-        displayDCFResults(dcfResults, companyProfile);
-        
-        // Set initial values for parameter editor
-        waccInput.value = dcfResults.wacc.toFixed(2);
-        terminalGrowthRateInput.value = dcfResults.terminalGrowthRate.toFixed(2);
-        originalWacc.textContent = `(Original: ${dcfResults.wacc.toFixed(2)}%)`;
-        originalTerminalGrowthRate.textContent = `(Original: ${dcfResults.terminalGrowthRate.toFixed(2)}%)`;
-        
-        // Display financial metrics
-        displayFinancialMetrics(financialRatios, keyMetrics, growth, incomeStatements, companyProfile, balanceSheets);
-        
-        // Display investment considerations
-        displayInvestmentConsiderations(companyProfile, financialRatios, keyMetrics, growth, dcfResults);
-        
-        // Show results section
-        showResults(true);
-      } catch (error) {
-        console.error("Analysis error:", error);
-        showError(`Failed to analyze ${ticker}: ${error.message || "Unknown error"}`);
-      } finally {
-        showLoading(false);
+      body {
+        font-family: "Roboto", sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background-color: #f9fafb;
+        padding: 20px;
       }
-    }
-    
-    // Function to recalculate DCF with user-defined parameters
-    function recalculateDCF() {
-      if (!currentTicker) return;
-      
-      const userWacc = parseFloat(waccInput.value);
-      const userTerminalGrowthRate = parseFloat(terminalGrowthRateInput.value);
-      
-      if (isNaN(userWacc) || isNaN(userTerminalGrowthRate)) {
-        showError("Please enter valid numbers for WACC and Terminal Growth Rate.");
-        return;
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
       }
-      
-      try {
-        // Perform DCF analysis with custom parameters
-        const dcfResults = performDCFAnalysisWithCustomParams(
-          currentTicker, 
-          storedIncomeStatements, 
-          storedCashFlowStatements, 
-          storedBalanceSheets, 
-          storedCompanyProfile,
-          userWacc / 100, // Convert from percentage to decimal
-          userTerminalGrowthRate / 100 // Convert from percentage to decimal
-        );
-        
-        // Update DCF results display
-        displayDCFResults(dcfResults, storedCompanyProfile);
-        
-        // Update investment considerations
-        displayInvestmentConsiderations(
-          storedCompanyProfile, 
-          storedFinancialRatios, 
-          storedKeyMetrics, 
-          storedGrowth, 
-          dcfResults
-        );
-        
-      } catch (error) {
-        console.error("Recalculation error:", error);
-        showError(`Failed to recalculate DCF: ${error.message || "Unknown error"}`);
+      header {
+        background-color: var(--primary);
+        color: white;
+        padding: 20px 30px;
+        text-align: center;
       }
-    }
-    
-    // Data fetching functions
-    async function fetchCompanyProfile(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/profile/${ticker}?apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No company profile found for ticker: ${ticker}`);
+      h1 {
+        font-size: 24px;
+        margin-bottom: 10px;
       }
-      
-      return data[0];
-    }
-    
-    async function fetchFinancialRatios(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/ratios/${ticker}?limit=4&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No financial ratios found for ticker: ${ticker}`);
+      .description {
+        font-size: 16px;
+        opacity: 0.9;
       }
-      
-      return data;
-    }
-    
-    async function fetchIncomeStatements(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/income-statement/${ticker}?limit=5&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No income statements found for ticker: ${ticker}`);
+      .input-section {
+        padding: 30px;
+        background-color: white;
+        border-bottom: 1px solid var(--border);
       }
-      
-      return data;
-    }
-    
-    async function fetchCashFlowStatements(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/cash-flow-statement/${ticker}?limit=5&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No cash flow statements found for ticker: ${ticker}`);
+      .form-group {
+        display: flex;
+        gap: 15px;
+        max-width: 600px;
+        margin: 0 auto;
       }
-      
-      return data;
-    }
-    
-    async function fetchBalanceSheets(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/balance-sheet-statement/${ticker}?limit=5&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No balance sheets found for ticker: ${ticker}`);
+      input[type="text"] {
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font-size: 16px;
+        outline: none;
       }
-      
-      return data;
-    }
-    
-    async function fetchKeyMetrics(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/key-metrics/${ticker}?limit=5&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No key metrics found for ticker: ${ticker}`);
+      input[type="text"]:focus {
+        border-color: var(--secondary);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
       }
-      
-      return data;
-    }
-    
-    async function fetchGrowthMetrics(ticker) {
-      const response = await fetch(`${FMP_BASE_URL}/financial-growth/${ticker}?limit=5&apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error(`No growth metrics found for ticker: ${ticker}`);
+      button {
+        background-color: var(--secondary);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 12px 25px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
       }
-      
-      return data;
-    }
-    
-    // DCF Analysis function with default parameters
-    function performDCFAnalysis(ticker, incomeStatements, cashFlowStatements, balanceSheets, companyProfile) {
-      // Call the custom params version with auto-calculated defaults
-      return performDCFAnalysisWithCustomParams(
-        ticker, 
-        incomeStatements, 
-        cashFlowStatements, 
-        balanceSheets, 
-        companyProfile
-      );
-    }
-    
-    // DCF Analysis function with custom parameters
-    function performDCFAnalysisWithCustomParams(
-      ticker, 
-      incomeStatements, 
-      cashFlowStatements, 
-      balanceSheets, 
-      companyProfile,
-      customWacc = null,
-      customTerminalGrowthRate = null
-    ) {
-      // Extract historical free cash flows
-      const historicalFCF = cashFlowStatements.map((statement, index) => {
-        // Free Cash Flow = Operating Cash Flow - Capital Expenditures
-        return {
-          year: new Date(statement.date).getFullYear(),
-          freeCashFlow: statement.operatingCashFlow - Math.abs(statement.capitalExpenditure)
-        };
-      }).reverse(); // Oldest to newest
-      
-      // Calculate average growth rate from historical data
-      let growthRates = [];
-      for (let i = 1; i < historicalFCF.length; i++) {
-        const growthRate = (historicalFCF[i].freeCashFlow - historicalFCF[i-1].freeCashFlow) / 
-                           Math.abs(historicalFCF[i-1].freeCashFlow);
-        growthRates.push(growthRate);
+      button:hover {
+        background-color: #2563eb;
       }
-      
-      // Calculate average growth rate, with some constraints
-      let avgGrowthRate = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
-      
-      // Constrain growth rate to reasonable bounds
-      avgGrowthRate = Math.min(Math.max(avgGrowthRate, 0.02), 0.20);
-      
-      // For projections, we'll gradually reduce the growth rate over time
-      const projectionYears = 5;
-      
-      // Use custom terminal growth rate if provided, otherwise use default
-      const terminalGrowthRate = customTerminalGrowthRate !== null ? customTerminalGrowthRate : 0.025; // 2.5% long-term growth assumption
-      
-      // Calculate WACC (Weighted Average Cost of Capital) if not provided
-      let wacc;
-      
-      if (customWacc !== null) {
-        wacc = customWacc;
-      } else {
-        // This is simplified - in practice would need more data
-        const riskFreeRate = 0.035; // 3.5% Treasury yield assumption
-        const marketRiskPremium = 0.06; // 6% market risk premium assumption
-        const beta = companyProfile.beta || 1.0;
-        const equityRatio = 0.7; // Assumption about capital structure
-        const debtRatio = 0.3;
-        const taxRate = 0.21; // US corporate tax rate
-        
-        const costOfEquity = riskFreeRate + beta * marketRiskPremium;
-        
-        // Cost of debt - estimate from financial statements
-        let interestExpense = 0;
-        let totalDebt = 0;
-        
-        if (incomeStatements.length > 0 && balanceSheets.length > 0) {
-          interestExpense = incomeStatements[0].interestExpense || 0;
-          totalDebt = balanceSheets[0].totalDebt || 0;
+      button:disabled {
+        background-color: #93c5fd;
+        cursor: not-allowed;
+      }
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 30px;
+      }
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: var(--secondary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        
-        const costOfDebt = totalDebt > 0 ? Math.abs(interestExpense / totalDebt) : 0.04;
-        const afterTaxCostOfDebt = costOfDebt * (1 - taxRate);
-        
-        // Calculate WACC
-        wacc = (equityRatio * costOfEquity) + (debtRatio * afterTaxCostOfDebt);
       }
-      
-      // Project future cash flows
-      const projectedFCF = [];
-      const mostRecentFCF = historicalFCF[historicalFCF.length - 1].freeCashFlow;
-      
-      for (let year = 1; year <= projectionYears; year++) {
-        // Linearly interpolate growth rate from avgGrowthRate to terminalGrowthRate
-        const growthRate = avgGrowthRate - ((avgGrowthRate - terminalGrowthRate) * (year - 1) / (projectionYears - 1));
-        
-        const previousFCF = year === 1 ? mostRecentFCF : projectedFCF[year - 2].fcf;
-        const fcf = previousFCF * (1 + growthRate);
-        
-        projectedFCF.push({
-          year: historicalFCF[historicalFCF.length - 1].year + year,
-          fcf: fcf,
-          growthRate: growthRate,
-          discountFactor: 1 / Math.pow(1 + wacc, year),
-          presentValue: fcf / Math.pow(1 + wacc, year)
-        });
+      .error-message {
+        display: none;
+        color: var(--danger);
+        background-color: #fee2e2;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px;
+        text-align: center;
       }
-      
-      // Calculate Terminal Value using Gordon Growth Model
-      const terminalFCF = projectedFCF[projectedFCF.length - 1].fcf * (1 + terminalGrowthRate);
-      const terminalValue = terminalFCF / (wacc - terminalGrowthRate);
-      const discountedTerminalValue = terminalValue / Math.pow(1 + wacc, projectionYears);
-      
-      // Sum up present values
-      const sumPresentValues = projectedFCF.reduce((sum, projection) => sum + projection.presentValue, 0);
-      const enterpriseValue = sumPresentValues + discountedTerminalValue;
-      
-      // Get latest balance sheet
-      const latestBalanceSheet = balanceSheets[0];
-      
-      // Calculate equity value
-      const totalDebtValue = latestBalanceSheet.totalDebt || 0;
-      const cashAndEquivalents = latestBalanceSheet.cashAndCashEquivalents || 0;
-      const equityValue = enterpriseValue - totalDebtValue + cashAndEquivalents;
-      
-      // Calculate per share values
-      const sharesOutstanding = companyProfile.mktCap / companyProfile.price || 0;
-      const intrinsicValuePerShare = equityValue / sharesOutstanding;
-      
-      // Calculate margin of safety
-      const currentPrice = companyProfile.price;
-      const marginOfSafety = (intrinsicValuePerShare - currentPrice) / intrinsicValuePerShare * 100;
-      
-      return {
-        historicalFCF,
-        projectedFCF,
-        enterpriseValue,
-        equityValue,
-        intrinsicValuePerShare,
-        currentPrice,
-        marginOfSafety,
-        wacc: wacc * 100, // Convert to percentage
-        terminalValue,
-        discountedTerminalValue,
-        terminalGrowthRate: terminalGrowthRate * 100 // Convert to percentage
+      .results-section {
+        display: none;
+        padding: 30px;
+      }
+      .company-overview {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .company-logo {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 5px;
+      }
+      .company-info {
+        flex: 1;
+      }
+      .company-info h2 {
+        font-size: 24px;
+        margin-bottom: 5px;
+      }
+      .company-info p {
+        color: #6b7280;
+        margin-bottom: 10px;
+      }
+      .company-description {
+        max-height: 120px;
+        overflow-y: auto;
+        margin: 10px 0;
+        padding-right: 10px;
+      }
+      .current-price {
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+      .section-title {
+        font-size: 20px;
+        margin: 30px 0 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--light-gray);
+      }
+      .analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .analysis-card {
+        background-color: white;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .analysis-card h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: var(--primary);
+      }
+      .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .metrics-table th,
+      .metrics-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      .metrics-table th {
+        background-color: var(--light-gray);
+        font-weight: 500;
+      }
+      .value-positive {
+        color: var(--success);
+        font-weight: 500;
+      }
+      .value-negative {
+        color: var(--danger);
+        font-weight: 500;
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+      .metric-card {
+        background-color: var(--light-gray);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .metric-value {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 5px 0;
+      }
+      .metric-label {
+        font-size: 14px;
+        color: #6b7280;
+      }
+      #valuationSummary {
+        margin: 20px 0;
+        padding: 25px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 18px;
+      }
+      .undervalued {
+        background-color: #dcfce7;
+        border: 1px solid #86efac;
+      }
+      .overvalued {
+        background-color: #fee2e2;
+        border: 1px solid #fca5a5;
+      }
+      .fairly-valued {
+        background-color: #fef9c3;
+        border: 1px solid #fde047;
+      }
+      .parameter-editor {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .parameter-editor label {
+        min-width: 200px;
+        font-weight: 500;
+      }
+      .parameter-editor input {
+        width: 100px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .recalculate-btn {
+        background-color: var(--primary);
+        margin-top: 15px;
+      }
+      .parameter-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 15px;
+      }
+      .parameter-tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+      }
+      .parameter-tab.active {
+        border-bottom-color: var(--secondary);
+        font-weight: 500;
+      }
+      .parameter-panel {
+        display: none;
+      }
+      .parameter-panel.active {
+        display: block;
+      }
+      .sensitivity-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      .sensitivity-table th,
+      .sensitivity-table td {
+        padding: 8px;
+        text-align: center;
+        border: 1px solid var(--border);
+      }
+      .sensitivity-table th {
+        background-color: var(--light-gray);
+      }
+      .sensitivity-table .highlight {
+        background-color: #dbeafe;
+        font-weight: 600;
+      }
+      .toggle-details {
+        background-color: var(--light-gray);
+        border: none;
+        padding: 8px 15px;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        margin: 10px 0;
+      }
+      .dcf-details {
+        display: none;
+        margin-top: 15px;
+      }
+      .full-dcf-table {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .dcf-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1000px;
+        font-size: 14px;
+      }
+      .dcf-table th,
+      .dcf-table td {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        text-align: right;
+      }
+      .dcf-table th {
+        background-color: var(--light-gray);
+        font-weight: 600;
+        text-align: left;
+      }
+      .dcf-table .editable-cell {
+        position: relative;
+        background-color: #eff6ff;
+        cursor: pointer;
+      }
+      .year-cell {
+        text-align: center !important;
+        font-weight: 600;
+        background-color: #dbeafe;
+      }
+      .calculated-cell {
+        background-color: #f8fafc;
+        font-weight: 500;
+      }
+      .total-row {
+        font-weight: 600;
+        background-color: #f0f9ff;
+      }
+      .key-result {
+        background-color: #f0fdf4;
+        font-weight: 700;
+      }
+      .investment-considerations {
+        margin-top: 30px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Professional Stock DCF Analysis Tool</h1>
+        <p class="description">
+          Enter a stock ticker to get a comprehensive Discounted Cash Flow
+          analysis and investment metrics
+        </p>
+      </header>
+
+      <div class="input-section">
+        <div class="form-group">
+          <input
+            type="text"
+            id="tickerInput"
+            placeholder="Enter stock ticker (e.g., AAPL)"
+            autocapitalize="characters"
+          />
+          <button id="analyzeBtn">Analyze</button>
+        </div>
+      </div>
+
+      <div class="loading" id="loadingSection">
+        <div class="spinner"></div>
+        <p>Fetching and analyzing financial data...</p>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+
+      <div class="results-section" id="resultsSection">
+        <div class="company-overview" id="companyOverview">
+          <!-- Company info will be inserted here -->
+        </div>
+
+        <div id="valuationSummary"></div>
+
+        <h2 class="section-title">DCF Analysis Results</h2>
+        <div class="analysis-grid">
+          <div class="analysis-card">
+            <h3>Intrinsic Value Estimate</h3>
+            <div class="metrics-grid" id="intrinsicValueMetrics"></div>
+          </div>
+
+          <div class="analysis-card">
+            <h3>DCF Model Parameters</h3>
+            <div class="parameter-tabs">
+              <div
+                class="parameter-tab active"
+                data-panel="basicParams"
+              >
+                Basic Parameters
+              </div>
+              <div
+                class="parameter-tab"
+                data-panel="advancedParams"
+              >
+                Advanced Parameters
+              </div>
+            </div>
+
+            <div id="basicParams" class="parameter-panel active">
+              <div class="parameter-editor">
+                <label for="waccInput">WACC (%)</label>
+                <input
+                  type="number"
+                  id="waccInput"
+                  min="1"
+                  max="30"
+                  step="0.1"
+                />
+              </div>
+              <div class="parameter-editor">
+                <label for="terminalGrowthRateInput">Terminal Growth Rate (%)</label>
+                <input
+                  type="number"
+                  id="terminalGrowthRateInput"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                />
+              </div>
+              <div class="parameter-editor">
+                <label for="projectionYearsInput">Projection Years</label>
+                <input
+                  type="number"
+                  id="projectionYearsInput"
+                  min="3"
+                  max="15"
+                  step="1"
+                />
+              </div>
+              <button id="recalculateBtn" class="recalculate-btn">
+                Recalculate DCF
+              </button>
+            </div>
+
+            <div id="advancedParams" class="parameter-panel">
+              <div class="parameter-editor">
+                <label for="initialRevenueGrowthInput">Initial Revenue Growth (%)</label>
+                <input
+                  type="number"
+                  id="initialRevenueGrowthInput"
+                  min="-50"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+              <div class="parameter-editor">
+                <label for="targetMarginInput">Target Operating Margin (%)</label>
+                <input
+                  type="number"
+                  id="targetMarginInput"
+                  min="-50"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+              <div class="parameter-editor">
+                <label for="capexPercentInput">CapEx as % of Revenue</label>
+                <input
+                  type="number"
+                  id="capexPercentInput"
+                  min="0"
+                  max="50"
+                  step="0.1"
+                />
+              </div>
+              <button id="recalculateAdvancedBtn" class="recalculate-btn">
+                Recalculate with Advanced
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button id="toggleDcfDetailsBtn" class="toggle-details">
+          Show Full DCF Model
+        </button>
+        <div class="dcf-details" id="dcfDetailsSection">
+          <div class="full-dcf-table">
+            <table class="dcf-table" id="fullDcfTable"></table>
+          </div>
+        </div>
+
+        <div class="analysis-card" style="margin-top: 20px;">
+          <h3>Sensitivity Analysis</h3>
+          <p>
+            Intrinsic value per share at different WACC and Terminal Growth Rates:
+          </p>
+          <table class="sensitivity-table" id="sensitivityTable"></table>
+        </div>
+
+        <h2 class="section-title">Financial Metrics & Ratios</h2>
+        <div class="analysis-grid">
+          <div class="analysis-card">
+            <h3>Valuation Ratios</h3>
+            <div class="metrics-grid" id="valuationRatios"></div>
+          </div>
+
+          <div class="analysis-card">
+            <h3>Profitability Metrics</h3>
+            <div class="metrics-grid" id="profitabilityMetrics"></div>
+          </div>
+
+          <div class="analysis-card">
+            <h3>Growth Metrics</h3>
+            <div class="metrics-grid" id="growthMetrics"></div>
+          </div>
+        </div>
+
+        <div class="investment-considerations" id="investmentConsiderations">
+          <h2 class="section-title">Investment Considerations</h2>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // A completely rewritten, more robust implementation
+      const API_KEY = "hQC5T9ehWTI6XB0kQ6enPU5YslmIa5wN";
+      const API_BASE_URL =
+        "https://financialmodelingprep.com/api/v3";
+
+      // DOM Elements with safe lookup
+      const getEl = id => document.getElementById(id);
+      const els = {
+        tickerInput: getEl("tickerInput"),
+        analyzeBtn: getEl("analyzeBtn"),
+        loadingSection: getEl("loadingSection"),
+        errorMessage: getEl("errorMessage"),
+        resultsSection: getEl("resultsSection"),
+        companyOverview: getEl("companyOverview"),
+        valuationSummary: getEl("valuationSummary"),
+        intrinsicValueMetrics: getEl("intrinsicValueMetrics"),
+        valuationRatios: getEl("valuationRatios"),
+        profitabilityMetrics: getEl("profitabilityMetrics"),
+        growthMetrics: getEl("growthMetrics"),
+        investmentConsiderations: getEl("investmentConsiderations"),
+        waccInput: getEl("waccInput"),
+        terminalGrowthRateInput: getEl("terminalGrowthRateInput"),
+        projectionYearsInput: getEl("projectionYearsInput"),
+        initialRevenueGrowthInput: getEl("initialRevenueGrowthInput"),
+        targetMarginInput: getEl("targetMarginInput"),
+        capexPercentInput: getEl("capexPercentInput"),
+        recalculateBtn: getEl("recalculateBtn"),
+        recalculateAdvancedBtn: getEl("recalculateAdvancedBtn"),
+        fullDcfTable: getEl("fullDcfTable"),
+        sensitivityTable: getEl("sensitivityTable"),
+        toggleDcfDetailsBtn: getEl("toggleDcfDetailsBtn"),
+        dcfDetailsSection: getEl("dcfDetailsSection")
       };
-    }
-    
-    // UI Display Functions
-    function displayCompanyOverview(companyProfile) {
-      companyOverview.innerHTML = `
-        <img src="${companyProfile.image}" alt="${companyProfile.companyName} logo" class="company-logo">
-        <div class="company-info">
-          <h2>${companyProfile.companyName} (${companyProfile.symbol})</h2>
-          <p>${companyProfile.exchange} - ${companyProfile.sector} > ${companyProfile.industry}</p>
-          <p>${companyProfile.description.substring(0, 150)}...</p>
-          <div class="current-price">Current Price: $${companyProfile.price.toFixed(2)}</div>
-        </div>
-      `;
-    }
-    
-    function displayDCFResults(dcfResults, companyProfile) {
-      // Display valuation summary
-      const priceDifference = ((dcfResults.intrinsicValuePerShare - dcfResults.currentPrice) / dcfResults.currentPrice * 100).toFixed(2);
-      let summaryClass = '';
-      let summaryText = '';
-      
-      if (dcfResults.marginOfSafety > 20) {
-        summaryClass = 'undervalued';
-        summaryText = `<strong>Potentially Undervalued:</strong> The intrinsic value is ${Math.abs(priceDifference)}% above the current market price.`;
-      } else if (dcfResults.marginOfSafety < -20) {
-        summaryClass = 'overvalued';
-        summaryText = `<strong>Potentially Overvalued:</strong> The intrinsic value is ${Math.abs(priceDifference)}% below the current market price.`;
-      } else {
-        summaryClass = 'fairly-valued';
-        summaryText = `<strong>Fairly Valued:</strong> The intrinsic value is within 20% of the current market price.`;
-      }
-      
-      valuationSummary.className = summaryClass;
-      valuationSummary.innerHTML = summaryText;
-      
-      // Display intrinsic value metrics
-      intrinsicValueMetrics.innerHTML = `
-        <div class="metric-card">
-          <div class="metric-label">Intrinsic Value Per Share</div>
-          <div class="metric-value">$${dcfResults.intrinsicValuePerShare.toFixed(2)}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Current Price</div>
-          <div class="metric-value">$${dcfResults.currentPrice.toFixed(2)}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Margin of Safety</div>
-          <div class="metric-value ${dcfResults.marginOfSafety > 0 ? 'value-positive' : 'value-negative'}">
-            ${dcfResults.marginOfSafety.toFixed(2)}%
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Enterprise Value</div>
-          <div class="metric-value">$${(dcfResults.enterpriseValue / 1e9).toFixed(2)} B</div>
-        </div>
-      `;
-      
-      // Display DCF calculation details
-      dcfDetailsTable.innerHTML = `
-        <tr>
-          <th>Metric</th>
-          <th>Value</th>
-        </tr>
-        <tr>
-          <td>Weighted Average Cost of Capital (WACC)</td>
-          <td>${dcfResults.wacc.toFixed(2)}%</td>
-        </tr>
-        <tr>
-          <td>Terminal Growth Rate</td>
-          <td>${dcfResults.terminalGrowthRate.toFixed(2)}%</td>
-        </tr>
-        <tr>
-          <td>Terminal Value</td>
-          <td>$${(dcfResults.terminalValue / 1e9).toFixed(2)} B</td>
-        </tr>
-        <tr>
-          <td>Present Value of Terminal Value</td>
-          <td>$${(dcfResults.discountedTerminalValue / 1e9).toFixed(2)} B</td>
-        </tr>
-        <tr>
-          <td>Equity Value</td>
-          <td>$${(dcfResults.equityValue / 1e9).toFixed(2)} B</td>
-        </tr>
-        <tr>
-          <td>Market Cap</td>
-          <td>$${(companyProfile.mktCap / 1e9).toFixed(2)} B</td>
-        </tr>
-      `;
-    }
-    
-    function displayFinancialMetrics(financialRatios, keyMetrics, growth, incomeStatements, companyProfile, balanceSheets) {
-      // Get the latest data from each dataset
-      const latestRatios = financialRatios[0];
-      const latestKeyMetrics = keyMetrics[0];
-      const latestGrowth = growth[0];
-      const latestIncomeStatement = incomeStatements[0];
-      const latestBalanceSheet = balanceSheets[0];
-      
-      // Calculate P/E ratio if it's not available directly
-      let peRatio = latestRatios.peRatio;
-      if (!peRatio || isNaN(peRatio) || peRatio === null) {
-        // Calculate P/E ratio manually
-        const eps = latestIncomeStatement.netIncome / latestIncomeStatement.weightedAverageShsOut;
-        if (eps > 0) {
-          peRatio = companyProfile.price / eps;
+
+      // Global state
+      let state = {
+        ticker: "",
+        data: {
+          profile: null,
+          income: [],
+          cashflow: [],
+          balance: [],
+          metrics: [],
+          ratios: [],
+          growth: []
+        },
+        dcfModel: null
+      };
+
+      // Utility functions - with robust error handling
+      const format = {
+        currency: (num, decimals = 2) => {
+          if (num === undefined || num === null || isNaN(num))
+            return "N/A";
+          if (Math.abs(num) >= 1e9)
+            return `$${(num / 1e9).toFixed(decimals)}B`;
+          if (Math.abs(num) >= 1e6)
+            return `$${(num / 1e6).toFixed(decimals)}M`;
+          return `$${num.toFixed(decimals)}`;
+        },
+        percent: (num, decimals = 2) => {
+          if (num === undefined || num === null || isNaN(num))
+            return "N/A";
+          return `${(num * 100).toFixed(decimals)}%`;
+        },
+        number: (num, decimals = 0) => {
+          if (num === undefined || num === null || isNaN(num))
+            return "N/A";
+          return num.toFixed(decimals);
+        }
+      };
+
+      // Safe accessor functions
+      const get = (obj, path, defaultVal = null) => {
+        try {
+          const result = path.split(".").reduce((o, p) => o[p], obj);
+          return result === undefined || result === null
+            ? defaultVal
+            : result;
+        } catch (e) {
+          return defaultVal;
+        }
+      };
+
+      // API interaction with better error handling
+      async function fetchData(endpoint, params = {}) {
+        try {
+          const url = new URL(`${API_BASE_URL}/${endpoint}`);
+          url.searchParams.append("apikey", API_KEY);
+          Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+          });
+
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(
+              `API responded with status ${response.status}`
+            );
+          }
+
+          const data = await response.json();
+          if (!data || (Array.isArray(data) && data.length === 0)) {
+            throw new Error(`No data returned for ${endpoint}`);
+          }
+
+          return data;
+        } catch (error) {
+          console.error(`Error fetching ${endpoint}:`, error);
+          throw error;
         }
       }
-      
-      // Calculate EV/EBITDA if it's not available directly
-      let evToEbitda = latestRatios.enterpriseValueOverEBITDA;
-      if (!evToEbitda || isNaN(evToEbitda) || evToEbitda === null) {
-        // Calculate Enterprise Value
-        const marketCap = companyProfile.mktCap;
-        const totalDebt = latestBalanceSheet.totalDebt || 0;
-        const cashAndEquivalents = latestBalanceSheet.cashAndCashEquivalents || 0;
-        const enterpriseValue = marketCap + totalDebt - cashAndEquivalents;
-        
-        // Calculate EBITDA
-        const ebitda = latestIncomeStatement.ebitda;
-        if (ebitda && ebitda > 0) {
-          evToEbitda = enterpriseValue / ebitda;
+
+      // Main analysis function - restructured for better error handling
+      async function analyzeStock() {
+        const ticker = els.tickerInput.value.trim().toUpperCase();
+        if (!ticker) {
+          showError("Please enter a valid stock ticker");
+          return;
+        }
+
+        state.ticker = ticker;
+        resetUI();
+        showLoading(true);
+
+        try {
+          // Fetch all data in parallel with proper error handling
+          const [
+            profile,
+            income,
+            cashflow,
+            balance,
+            metrics,
+            ratios,
+            growth
+          ] = await Promise.all([
+            fetchData(`profile/${ticker}`),
+            fetchData(`income-statement/${ticker}`, { limit: 5 }),
+            fetchData(`cash-flow-statement/${ticker}`, { limit: 5 }),
+            fetchData(`balance-sheet-statement/${ticker}`, { limit: 5 }),
+            fetchData(`key-metrics/${ticker}`, { limit: 5 }),
+            fetchData(`ratios/${ticker}`, { limit: 5 }),
+            fetchData(`financial-growth/${ticker}`, { limit: 5 })
+          ]);
+
+          // Store data for reuse
+          state.data = {
+            profile,
+            income,
+            cashflow,
+            balance,
+            metrics,
+            ratios,
+            growth
+          };
+
+          // Build DCF model
+          const dcfModel = buildDcfModel();
+          state.dcfModel = dcfModel;
+
+          // Display results
+          displayCompanyOverview();
+          displayValuationSummary();
+          displayDcfResults();
+          displaySensitivityAnalysis();
+          displayFinancialMetrics();
+          displayInvestmentConsiderations();
+
+          // Show results section
+          showResults(true);
+        } catch (error) {
+          console.error("Analysis failed:", error);
+          showError(`Failed to analyze ${ticker}: ${error.message}`);
+        } finally {
+          showLoading(false);
         }
       }
-      
-      // Display valuation ratios
-      valuationRatios.innerHTML = `
-        <div class="metric-card">
-          <div class="metric-label">P/E Ratio</div>
-          <div class="metric-value">${peRatio && !isNaN(peRatio) ? peRatio.toFixed(2) : 'N/A'}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">EV/EBITDA</div>
-          <div class="metric-value">${evToEbitda && !isNaN(evToEbitda) ? evToEbitda.toFixed(2) : 'N/A'}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">P/B Ratio</div>
-          <div class="metric-value">${latestRatios.priceToBookRatio ? latestRatios.priceToBookRatio.toFixed(2) : 'N/A'}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Price to FCF</div>
-          <div class="metric-value">${latestRatios.priceToFreeCashFlowsRatio ? latestRatios.priceToFreeCashFlowsRatio.toFixed(2) : 'N/A'}</div>
-        </div>
-      `;
-      
-      // Display profitability metrics
-      profitabilityMetrics.innerHTML = `
-        <div class="metric-card">
-          <div class="metric-label">Gross Margin</div>
-          <div class="metric-value">${(latestRatios.grossProfitMargin * 100).toFixed(2)}%</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Operating Margin</div>
-          <div class="metric-value">${(latestRatios.operatingProfitMargin * 100).toFixed(2)}%</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Net Profit Margin</div>
-          <div class="metric-value">${(latestRatios.netProfitMargin * 100).toFixed(2)}%</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">ROE</div>
-          <div class="metric-value">${(latestRatios.returnOnEquity * 100).toFixed(2)}%</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">ROIC</div>
-          <div class="metric-value">${
-            latestRatios.returnOnInvestedCapital && !isNaN(latestRatios.returnOnInvestedCapital) ? 
-            (latestRatios.returnOnInvestedCapital * 100).toFixed(2) + '%' : 'N/A'
-          }</div>
-        </div>
-      `;
-      
-      // Display growth metrics
-      growthMetrics.innerHTML = `
-        <div class="metric-card">
-          <div class="metric-label">Revenue Growth (YoY)</div>
-          <div class="metric-value ${latestGrowth.revenueGrowth > 0 ? 'value-positive' : 'value-negative'}">
-            ${(latestGrowth.revenueGrowth * 100).toFixed(2)}%
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">EPS Growth (YoY)</div>
-          <div class="metric-value ${latestGrowth.epsgrowth > 0 ? 'value-positive' : 'value-negative'}">
-            ${(latestGrowth.epsgrowth * 100).toFixed(2)}%
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">FCF Growth (YoY)</div>
-          <div class="metric-value ${latestGrowth.freeCashFlowGrowth > 0 ? 'value-positive' : 'value-negative'}">
-            ${(latestGrowth.freeCashFlowGrowth * 100).toFixed(2)}%
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">3-Year Revenue CAGR</div>
-          <div class="metric-value ${latestGrowth.threeYRevenueGrowthPerShare > 0 ? 'value-positive' : 'value-negative'}">
-            ${(latestGrowth.threeYRevenueGrowthPerShare * 100).toFixed(2)}%
-          </div>
-        </div>
-      `;
-    }
-    
-    function displayInvestmentConsiderations(companyProfile, financialRatios, keyMetrics, growth, dcfResults) {
-      // Create list of considerations
-      const considerations = [];
-      
-      // Valuation considerations
-      if (dcfResults.marginOfSafety > 20) {
-        considerations.push({
-          title: "Potential Undervaluation",
-          description: `The stock appears to be undervalued by ${dcfResults.marginOfSafety.toFixed(2)}% based on our DCF analysis.`
-        });
-      } else if (dcfResults.marginOfSafety < -20) {
-        considerations.push({
-          title: "Potential Overvaluation",
-          description: `The stock appears to be overvalued by ${Math.abs(dcfResults.marginOfSafety).toFixed(2)}% based on our DCF analysis.`
-        });
+
+      // Build DCF model with defensive coding
+      function buildDcfModel(customParams = {}) {
+        try {
+          // Extract and sort statements by date (newest to oldest)
+          const income = [...state.data.income].sort(
+            (a, b) => new Date(b.date) - new Date(a.date)
+          );
+          const cashflow = [...state.data.cashflow].sort(
+            (a, b) => new Date(b.date) - new Date(a.date)
+          );
+          const balance = [...state.data.balance].sort(
+            (a, b) => new Date(b.date) - new Date(a.date)
+          );
+
+          if (!income.length || !cashflow.length || !balance.length) {
+            throw new Error("Insufficient financial data for analysis");
+          }
+
+          // Get latest values safely
+          const latestIncome = income[0] || {};
+          const latestBalance = balance[0] || {};
+          const profile = Array.isArray(state.data.profile)
+            ? state.data.profile[0]
+            : state.data.profile;
+
+          // Extract historical data (last 5 years)
+          const historicalData = extractHistoricalData(
+            income,
+            cashflow,
+            balance
+          );
+
+          // Calculate historical metrics
+          const metrics = calculateHistoricalMetrics(historicalData);
+
+          // Calculate WACC
+          const wacc = calculateWACC(latestIncome, latestBalance, profile);
+
+          // Set default model parameters
+          const defaultParams = {
+            projectionYears: 5,
+            wacc,
+            terminalGrowthRate: 0.025,
+            initialRevenueGrowth: Math.min(
+              Math.max(metrics.avgRevenueGrowth || 0.05, 0.02),
+              0.15
+            ),
+            targetOperatingMargin: metrics.avgOperatingMargin || 0.15,
+            capexPercent: metrics.avgCapexPercent || 0.05,
+            workingCapitalPercent: 0.05
+          };
+
+          // Apply custom parameters
+          const params = { ...defaultParams, ...customParams };
+
+          // Project future cash flows
+          const { projections, valuation } = projectCashFlows(
+            historicalData,
+            params,
+            profile,
+            latestBalance
+          );
+
+          // Set values for UI controls
+          setModelParameters(params);
+
+          // Return complete DCF model
+          return {
+            ticker: state.ticker,
+            historicalData,
+            projections,
+            metrics,
+            params,
+            valuation
+          };
+        } catch (error) {
+          console.error("Error building DCF model:", error);
+          throw new Error(`Failed to build DCF model: ${error.message}`);
+        }
       }
-      
-      // Growth considerations
-      const latestGrowth = growth[0];
-      if (latestGrowth.revenueGrowth > 0.15) {
-        considerations.push({
-          title: "Strong Revenue Growth",
-          description: `The company is showing strong revenue growth at ${(latestGrowth.revenueGrowth * 100).toFixed(2)}% year-over-year.`
+
+      // Extract and format historical financial data
+      function extractHistoricalData(income, cashflow, balance) {
+        const years = new Set();
+        income.forEach(stmt =>
+          years.add(new Date(stmt.date).getFullYear())
+        );
+
+        const data = [];
+        years.forEach(year => {
+          const incomeStmt = income.find(
+            s => new Date(s.date).getFullYear() === year
+          );
+          const cashStmt = cashflow.find(
+            s => new Date(s.date).getFullYear() === year
+          );
+          const balanceStmt = balance.find(
+            s => new Date(s.date).getFullYear() === year
+          );
+
+          if (incomeStmt && cashStmt && balanceStmt) {
+            data.push({
+              year,
+              revenue: get(incomeStmt, "revenue", 0),
+              cogs: get(incomeStmt, "costOfRevenue", 0),
+              grossProfit: get(incomeStmt, "grossProfit", 0),
+              operatingExpenses: get(incomeStmt, "operatingExpenses", 0),
+              operatingIncome: get(incomeStmt, "operatingIncome", 0),
+              netIncome: get(incomeStmt, "netIncome", 0),
+              ebitda: get(incomeStmt, "ebitda", 0),
+              depreciation: get(
+                incomeStmt,
+                "depreciationAndAmortization",
+                0
+              ),
+              operatingCashFlow: get(cashStmt, "operatingCashFlow", 0),
+              capex: get(cashStmt, "capitalExpenditure", 0),
+              fcf: get(
+                cashStmt,
+                "freeCashFlow",
+                get(
+                  cashStmt,
+                  "operatingCashFlow",
+                  0
+                ) - Math.abs(get(cashStmt, "capitalExpenditure", 0))
+              ),
+              assets: get(balanceStmt, "totalAssets", 0),
+              debt: get(balanceStmt, "totalDebt", 0),
+              cash: get(balanceStmt, "cashAndCashEquivalents", 0),
+              equity: get(balanceStmt, "totalStockholdersEquity", 0)
+            });
+          }
         });
-      } else if (latestGrowth.revenueGrowth < 0) {
-        considerations.push({
-          title: "Declining Revenue",
-          description: `The company is experiencing declining revenue with ${(latestGrowth.revenueGrowth * 100).toFixed(2)}% year-over-year change.`
-        });
+
+        return data.sort((a, b) => a.year - b.year);
       }
-      
-      // Profitability considerations
-      const latestRatios = financialRatios[0];
-      if (latestRatios.netProfitMargin > 0.15) {
-        considerations.push({
-          title: "High Profit Margins",
-          description: `The company has strong net profit margins of ${(latestRatios.netProfitMargin * 100).toFixed(2)}%.`
+
+      // Calculate historical financial metrics
+      function calculateHistoricalMetrics(historicalData) {
+        if (!historicalData.length) return {};
+
+        const metrics = {
+          revenueGrowth: [],
+          grossMargin: [],
+          operatingMargin: [],
+          netMargin: [],
+          fcfMargin: [],
+          capexPercent: []
+        };
+
+        historicalData.forEach((data, i) => {
+          if (i > 0 && historicalData[i - 1].revenue) {
+            metrics.revenueGrowth.push(
+              (data.revenue - historicalData[i - 1].revenue) /
+                historicalData[i - 1].revenue
+            );
+          }
+
+          if (data.revenue) {
+            metrics.grossMargin.push(data.grossProfit / data.revenue);
+            metrics.operatingMargin.push(
+              data.operatingIncome / data.revenue
+            );
+            metrics.netMargin.push(data.netIncome / data.revenue);
+            metrics.fcfMargin.push(data.fcf / data.revenue);
+            metrics.capexPercent.push(Math.abs(data.capex) / data.revenue);
+          }
         });
-      } else if (latestRatios.netProfitMargin < 0) {
-        considerations.push({
-          title: "Unprofitable Operations",
-          description: `The company is currently unprofitable with a net profit margin of ${(latestRatios.netProfitMargin * 100).toFixed(2)}%.`
-        });
+
+        const avg = arr =>
+          arr.length ? arr.reduce((sum, val) => sum + val, 0) / arr.length : null;
+
+        return {
+          avgRevenueGrowth: avg(metrics.revenueGrowth),
+          avgGrossMargin: avg(metrics.grossMargin),
+          avgOperatingMargin: avg(metrics.operatingMargin),
+          avgNetMargin: avg(metrics.netMargin),
+          avgFcfMargin: avg(metrics.fcfMargin),
+          avgCapexPercent: avg(metrics.capexPercent)
+        };
       }
-      
-      // ROE considerations
-      if (latestRatios.returnOnEquity > 0.20) {
-        considerations.push({
-          title: "Excellent Return on Equity",
-          description: `The company has a strong ROE of ${(latestRatios.returnOnEquity * 100).toFixed(2)}%, indicating efficient use of shareholder capital.`
-        });
-      } else if (latestRatios.returnOnEquity < 0.05) {
-        considerations.push({
-          title: "Low Return on Equity",
-          description: `The company has a low ROE of ${(latestRatios.returnOnEquity * 100).toFixed(2)}%, which may indicate inefficient use of shareholder capital.`
-        });
+
+      // Calculate Weighted Average Cost of Capital
+      function calculateWACC(income, balance, profile) {
+        const defaultWACC = 0.085;
+
+        try {
+          const riskFreeRate = 0.035;
+          const marketRiskPremium = 0.06;
+          const beta = get(profile, "beta", 1.0);
+          const costOfEquity = riskFreeRate + beta * marketRiskPremium;
+
+          const totalDebt = get(balance, "totalDebt", 0);
+          const marketCap = get(profile, "mktCap", 0);
+          const totalCapital = totalDebt + marketCap;
+
+          if (!totalCapital) return defaultWACC;
+
+          const equityWeight = marketCap / totalCapital;
+          const debtWeight = totalDebt / totalCapital;
+
+          const interestExpense = Math.abs(
+            get(income, "interestExpense", 0)
+          );
+          const costOfDebt =
+            totalDebt > 0 ? interestExpense / totalDebt : 0.04;
+          const taxRate = 0.21;
+          const afterTaxCostOfDebt = costOfDebt * (1 - taxRate);
+
+          return equityWeight * costOfEquity + debtWeight * afterTaxCostOfDebt;
+        } catch (error) {
+          console.warn("WACC calculation failed, using default:", error);
+          return defaultWACC;
+        }
       }
-      
-      // Dividend considerations
-      if (companyProfile.lastDiv > 0) {
-        const dividendYield = (companyProfile.lastDiv / companyProfile.price) * 100;
-        considerations.push({
-          title: "Dividend Yield",
-          description: `The company pays a dividend with a yield of ${dividendYield.toFixed(2)}%.`
-        });
+
+      // Project future cash flows
+      function projectCashFlows(historicalData, params, profile, balance) {
+        const projections = [];
+        const latestYear = historicalData.length
+          ? historicalData[historicalData.length - 1].year
+          : new Date().getFullYear() - 1;
+        const baseRevenue = historicalData.length
+          ? historicalData[historicalData.length - 1].revenue
+          : 1e9;
+
+        for (let year = 1; year <= params.projectionYears; year++) {
+          const growthRate =
+            params.initialRevenueGrowth -
+            ((params.initialRevenueGrowth - params.terminalGrowthRate) *
+              (year - 1)) /
+              (params.projectionYears - 1);
+          const prevRevenue =
+            year === 1 ? baseRevenue : projections[year - 2].revenue;
+          const revenue = prevRevenue * (1 + growthRate);
+
+          const progress = (year - 1) / (params.projectionYears - 1);
+          const avgMargins = getAverageMargins(historicalData);
+          const operatingMargin = interpolate(
+            avgMargins.operating,
+            params.targetOperatingMargin,
+            progress
+          );
+
+          const operatingIncome = revenue * operatingMargin;
+          const depRate = getHistoricalRatio(
+            historicalData,
+            "depreciation",
+            "revenue",
+            0.03
+          );
+          const depreciation = revenue * depRate;
+          const ebitda = operatingIncome + depreciation;
+
+          const netMargin = getHistoricalRatio(
+            historicalData,
+            "netIncome",
+            "revenue",
+            0.1
+          );
+          const netIncome = revenue * netMargin;
+
+          const capex = -(revenue * params.capexPercent);
+          const revenueChange = revenue - prevRevenue;
+          const workingCapital = -(revenueChange * params.workingCapitalPercent);
+          const operatingCashFlow = netIncome + depreciation + workingCapital;
+          const fcf = operatingCashFlow + capex;
+
+          const discountFactor = 1 / Math.pow(1 + params.wacc, year);
+          const pv = fcf * discountFactor;
+
+          projections.push({
+            year: latestYear + year,
+            revenue,
+            growthRate,
+            operatingIncome,
+            operatingMargin,
+            depreciation,
+            ebitda,
+            netIncome,
+            netMargin,
+            capex,
+            workingCapital,
+            operatingCashFlow,
+            fcf,
+            discountFactor,
+            pv
+          });
+        }
+
+        const terminalFcf =
+          projections[projections.length - 1].fcf *
+          (1 + params.terminalGrowthRate);
+        const terminalValue =
+          terminalFcf / (params.wacc - params.terminalGrowthRate);
+        const discountedTerminalValue =
+          terminalValue / Math.pow(1 + params.wacc, params.projectionYears);
+        const sumPV = projections.reduce((sum, p) => sum + p.pv, 0);
+        const enterpriseValue = sumPV + discountedTerminalValue;
+        const debt = get(balance, "totalDebt", 0);
+        const cash = get(balance, "cashAndCashEquivalents", 0);
+        const equityValue = enterpriseValue - debt + cash;
+        const price = get(profile, "price", 0);
+        const shares = price ? get(profile, "mktCap", 0) / price : 0;
+        const intrinsicValue = shares ? equityValue / shares : 0;
+        const mos = price ? ((intrinsicValue - price) / intrinsicValue) * 100 : 0;
+
+        return {
+          projections,
+          valuation: {
+            terminalValue,
+            discountedTerminalValue,
+            sumPV,
+            enterpriseValue,
+            debt,
+            cash,
+            equityValue,
+            shares,
+            intrinsicValue,
+            currentPrice: price,
+            marginOfSafety: mos
+          }
+        };
       }
-      
-      // Debt considerations
-      if (latestRatios.debtToEquity > 2) {
-        considerations.push({
-          title: "High Debt Levels",
-          description: `The company has a high debt-to-equity ratio of ${latestRatios.debtToEquity.toFixed(2)}x, which may increase financial risk.`
+
+      // Helper for margin calculations
+      function getAverageMargins(historicalData) {
+        const margins = {
+          gross: [],
+          operating: [],
+          net: [],
+          fcf: []
+        };
+
+        historicalData.forEach(data => {
+          if (data.revenue) {
+            margins.gross.push(data.grossProfit / data.revenue);
+            margins.operating.push(data.operatingIncome / data.revenue);
+            margins.net.push(data.netIncome / data.revenue);
+            margins.fcf.push(data.fcf / data.revenue);
+          }
         });
-      } else if (latestRatios.debtToEquity < 0.3) {
-        considerations.push({
-          title: "Low Debt Levels",
-          description: `The company has a conservative debt-to-equity ratio of ${latestRatios.debtToEquity.toFixed(2)}x.`
-        });
+
+        const avg = arr =>
+          arr.length ? arr.reduce((sum, val) => sum + val, 0) / arr.length : 0;
+
+        return {
+          gross: avg(margins.gross),
+          operating: avg(margins.operating),
+          net: avg(margins.net),
+          fcf: avg(margins.fcf)
+        };
       }
-      
-      // Assumptions considerations for custom parameters
-      if (parseFloat(waccInput.value) !== parseFloat(originalWacc.textContent.replace(/[()Original: %]/g, ''))) {
-        considerations.push({
-          title: "Custom WACC Assumption",
-          description: `The analysis uses a custom WACC of ${parseFloat(waccInput.value).toFixed(2)}% instead of the estimated ${originalWacc.textContent.replace(/[()Original: ]/g, '')}.`
-        });
+
+      // Calculate historical ratio between two metrics
+      function getHistoricalRatio(data, numerator, denominator, defaultVal) {
+        const ratios = data
+          .filter(d => d[denominator] !== 0)
+          .map(d => d[numerator] / d[denominator]);
+
+        return ratios.length
+          ? ratios.reduce((sum, r) => sum + r, 0) / ratios.length
+          : defaultVal;
       }
-      
-      if (parseFloat(terminalGrowthRateInput.value) !== parseFloat(originalTerminalGrowthRate.textContent.replace(/[()Original: %]/g, ''))) {
-        considerations.push({
-          title: "Custom Terminal Growth Rate",
-          description: `The analysis uses a custom terminal growth rate of ${parseFloat(terminalGrowthRateInput.value).toFixed(2)}% instead of the default ${originalTerminalGrowthRate.textContent.replace(/[()Original: ]/g, '')}.`
-        });
+
+      // Linear interpolation between two values
+      function interpolate(start, end, progress) {
+        return start + (end - start) * progress;
       }
-      
-      // Generate HTML for considerations
-      let considerationsHTML = '';
-      considerations.forEach(item => {
-        considerationsHTML += `
-          <div class="consideration-item">
-            <h4>${item.title}</h4>
-            <p>${item.description}</p>
+
+      // Set UI parameter values
+      function setModelParameters(params) {
+        els.waccInput.value = (params.wacc * 100).toFixed(2);
+        els.terminalGrowthRateInput.value = (params.terminalGrowthRate * 100).toFixed(2);
+        els.projectionYearsInput.value = params.projectionYears;
+        els.initialRevenueGrowthInput.value = (params.initialRevenueGrowth * 100).toFixed(2);
+        els.targetMarginInput.value = (params.targetOperatingMargin * 100).toFixed(2);
+        els.capexPercentInput.value = (params.capexPercent * 100).toFixed(2);
+      }
+
+      // Display company overview
+      function displayCompanyOverview() {
+        const profile = Array.isArray(state.data.profile)
+          ? state.data.profile[0]
+          : state.data.profile;
+        if (!profile) return;
+
+        const name = get(profile, "companyName", "Unknown Company");
+        const symbol = get(profile, "symbol", state.ticker);
+        const exchange = get(profile, "exchange", "N/A");
+        const sector = get(profile, "sector", "N/A");
+        const industry = get(profile, "industry", "N/A");
+        const website = get(profile, "website", "#");
+        const logo = get(profile, "image", "https://via.placeholder.com/80x80");
+        const description = get(profile, "description", "No description available.");
+        const price = get(profile, "price", 0);
+
+        els.companyOverview.innerHTML = `
+          <a href="${website}" target="_blank" title="Visit company website">
+            <img src="${logo}" alt="${name} logo" class="company-logo">
+          </a>
+          <div class="company-info">
+            <h2>${name} (${symbol})</h2>
+            <p>${exchange} - ${sector} > ${industry}</p>
+            <div class="company-description">${description}</div>
+            <div class="current-price">Current Price: ${format.currency(price)}</div>
           </div>
         `;
-      });
-      
-      // Add disclaimer
-      considerationsHTML += `
-        <div class="consideration-item">
-          <h4>Disclaimer</h4>
-          <p>This analysis is based on historical data and projections. Future performance may differ from estimates. This tool provides information for educational purposes only and should not be considered investment advice.</p>
-        </div>
-      `;
-      
-      // Update the DOM
-      investmentConsiderations.innerHTML = `
-        <h2 class="section-title">Investment Considerations</h2>
-        ${considerationsHTML}
-      `;
-    }
-    
-    // Utility Functions
-    function resetUI() {
-      errorMessage.style.display = "none";
-      resultsSection.style.display = "none";
-      errorMessage.innerHTML = "";
-    }
-    
-    function showLoading(show) {
-      loadingSection.style.display = show ? "block" : "none";
-      analyzeBtn.disabled = show;
-    }
-    
-    function showResults(show) {
-      resultsSection.style.display = show ? "block" : "none";
-    }
-    
-    function showError(message) {
-      errorMessage.innerHTML = message;
-      errorMessage.style.display = "block";
-    }
-  </script>
-</body>
+      }
+
+      // Display valuation summary
+      function displayValuationSummary() {
+        if (!state.dcfModel || !state.dcfModel.valuation) return;
+
+        const { intrinsicValue, currentPrice, marginOfSafety } = state.dcfModel.valuation;
+        const percentDiff = currentPrice ? ((intrinsicValue - currentPrice) / currentPrice) * 100 : 0;
+
+        let summaryClass, summaryText;
+
+        if (marginOfSafety > 20) {
+          summaryClass = "undervalued";
+          summaryText = `<strong>Potentially Undervalued:</strong> The intrinsic value is ${Math.abs(percentDiff).toFixed(1)}% above the current price.`;
+        } else if (marginOfSafety < -20) {
+          summaryClass = "overvalued";
+          summaryText = `<strong>Potentially Overvalued:</strong> The intrinsic value is ${Math.abs(percentDiff).toFixed(1)}% below the current price.`;
+        } else {
+          summaryClass = "fairly-valued";
+          summaryText = `<strong>Fairly Valued:</strong> The intrinsic value is within 20% of the current market price.`;
+        }
+
+        els.valuationSummary.className = summaryClass;
+        els.valuationSummary.innerHTML = summaryText;
+      }
+
+      // Display DCF results
+      function displayDcfResults() {
+        if (!state.dcfModel || !state.dcfModel.valuation) return;
+
+        const v = state.dcfModel.valuation;
+
+        els.intrinsicValueMetrics.innerHTML = `
+          <div class="metric-card">
+            <div class="metric-label">Intrinsic Value Per Share</div>
+            <div class="metric-value">${format.currency(v.intrinsicValue)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Current Price</div>
+            <div class="metric-value">${format.currency(v.currentPrice)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Margin of Safety</div>
+            <div class="metric-value ${v.marginOfSafety > 0 ? 'value-positive' : 'value-negative'}">
+              ${format.percent(v.marginOfSafety / 100)}
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Enterprise Value</div>
+            <div class="metric-value">${format.currency(v.enterpriseValue / 1e9, 1)}B</div>
+          </div>
+        `;
+
+        renderDcfTable();
+      }
+
+      // Render full DCF model table
+      function renderDcfTable() {
+        if (!state.dcfModel) return;
+
+        const { historicalData, projections, valuation } = state.dcfModel;
+        let html = "<tr><th>Items</th>";
+
+        historicalData.forEach(data => {
+          html += `<th>FY ${data.year}</th>`;
+        });
+
+        projections.forEach(proj => {
+          html += `<th class="year-cell">FY ${proj.year}</th>`;
+        });
+
+        html += `<th>Terminal</th></tr>`;
+
+        const sections = [
+          {
+            title: "Revenue",
+            rows: [
+              {
+                label: "Revenue",
+                historical: data =>
+                  format.currency(data.revenue / 1e6, 1) + "M",
+                projected: proj =>
+                  format.currency(proj.revenue / 1e6, 1) + "M",
+                terminal:
+                  format.currency(
+                    (projections[projections.length - 1].revenue *
+                      (1 + state.dcfModel.params.terminalGrowthRate)) /
+                      1e6,
+                    1
+                  ) + "M"
+              },
+              {
+                label: "Growth Rate",
+                historical: (data, i) =>
+                  i === 0
+                    ? "-"
+                    : format.percent(
+                        (data.revenue - historicalData[i - 1].revenue) /
+                          historicalData[i - 1].revenue
+                      ),
+                projected: proj => format.percent(proj.growthRate),
+                terminal: format.percent(
+                  state.dcfModel.params.terminalGrowthRate
+                )
+              }
+            ]
+          },
+          {
+            title: "Profitability",
+            rows: [
+              {
+                label: "Operating Income",
+                historical: data =>
+                  format.currency(data.operatingIncome / 1e6, 1) + "M",
+                projected: proj =>
+                  format.currency(proj.operatingIncome / 1e6, 1) + "M",
+                terminal:
+                  format.currency(
+                    (projections[projections.length - 1].operatingIncome *
+                      (1 + state.dcfModel.params.terminalGrowthRate)) /
+                      1e6,
+                    1
+                  ) + "M"
+              },
+              {
+                label: "Operating Margin",
+                historical: data =>
+                  format.percent(data.operatingIncome / data.revenue),
+                projected: proj => format.percent(proj.operatingMargin),
+                terminal: format.percent(
+                  projections[projections.length - 1].operatingMargin
+                )
+              },
+              {
+                label: "Net Income",
+                historical: data =>
+                  format.currency(data.netIncome / 1e6, 1) + "M",
+                projected: proj =>
+                  format.currency(proj.netIncome / 1e6, 1) + "M",
+                terminal:
+                  format.currency(
+                    (projections[projections.length - 1].netIncome *
+                      (1 + state.dcfModel.params.terminalGrowthRate)) /
+                      1e6,
+                    1
+                  ) + "M"
+              }
+            ]
+          },
+          {
+            title: "Cash Flow",
+            rows: [
+              {
+                label: "Free Cash Flow",
+                historical: data =>
+                  format.currency(data.fcf / 1e6, 1) + "M",
+                projected: proj =>
+                  format.currency(proj.fcf / 1e6, 1) + "M",
+                terminal:
+                  format.currency(
+                    (projections[projections.length - 1].fcf *
+                      (1 + state.dcfModel.params.terminalGrowthRate)) /
+                      1e6,
+                    1
+                  ) + "M"
+              },
+              {
+                label: "Discount Factor",
+                historical: () => "-",
+                projected: proj => format.percent(proj.discountFactor),
+                terminal: format.percent(
+                  1 /
+                    Math.pow(
+                      1 + state.dcfModel.params.wacc,
+                      state.dcfModel.params.projectionYears + 1
+                    )
+                )
+              },
+              {
+                label: "Present Value",
+                historical: () => "-",
+                projected: proj =>
+                  format.currency(proj.pv / 1e6, 1) + "M",
+                terminal:
+                  format.currency(valuation.discountedTerminalValue / 1e6, 1) +
+                  "M"
+              }
+            ]
+          }
+        ];
+
+        sections.forEach(section => {
+          html += `<tr><td colspan="${
+            historicalData.length + projections.length + 2
+          }" style="background:#e5e7eb;font-weight:bold;">${
+            section.title
+          }</td></tr>`;
+
+          section.rows.forEach(row => {
+            html += `<tr><td style="text-align:left;font-weight:500;">${
+              row.label
+            }</td>`;
+
+            historicalData.forEach((data, i) => {
+              html += `<td>${row.historical(data, i)}</td>`;
+            });
+
+            projections.forEach(proj => {
+              html += `<td class="calculated-cell">${row.projected(
+                proj
+              )}</td>`;
+            });
+
+            html += `<td class="calculated-cell">${row.terminal}</td></tr>`;
+          });
+        });
+
+        html += `<tr><td colspan="${
+          historicalData.length + projections.length + 2
+        }" style="background:#e5e7eb;font-weight:bold;">Valuation Summary</td></tr>
+          <tr class="total-row">
+            <td style="text-align:left;">Sum of PV of FCF</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.sumPV / 1e6, 1)}M</td>
+          </tr>
+          <tr class="total-row">
+            <td style="text-align:left;">PV of Terminal Value</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.discountedTerminalValue / 1e6, 1)}M</td>
+          </tr>
+          <tr class="total-row">
+            <td style="text-align:left;">Enterprise Value</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.enterpriseValue / 1e6, 1)}M</td>
+          </tr>
+          <tr class="total-row">
+            <td style="text-align:left;">Net Debt</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency((valuation.debt - valuation.cash) / 1e6, 1)}M</td>
+          </tr>
+          <tr class="total-row">
+            <td style="text-align:left;">Equity Value</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.equityValue / 1e6, 1)}M</td>
+          </tr>
+          <tr class="key-result">
+            <td style="text-align:left;">Intrinsic Value Per Share</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.intrinsicValue)}</td>
+          </tr>
+          <tr class="key-result">
+            <td style="text-align:left;">Current Share Price</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td>${format.currency(valuation.currentPrice)}</td>
+          </tr>
+          <tr class="key-result">
+            <td style="text-align:left;">Upside/Downside</td>
+            ${"<td></td>".repeat(historicalData.length + projections.length)}
+            <td class="${
+              valuation.marginOfSafety > 0 ? "value-positive" : "value-negative"
+            }">${format.percent(valuation.marginOfSafety / 100)}</td>
+          </tr>`;
+
+        els.fullDcfTable.innerHTML = html;
+      }
+
+      // Display sensitivity analysis
+      function displaySensitivityAnalysis() {
+        if (!state.dcfModel) return;
+
+        const { params, projections, valuation } = state.dcfModel;
+        const wacc = params.wacc;
+        const growth = params.terminalGrowthRate;
+
+        const waccValues = [
+          wacc - 0.02,
+          wacc - 0.01,
+          wacc,
+          wacc + 0.01,
+          wacc + 0.02
+        ];
+        const growthValues = [
+          growth - 0.01,
+          growth - 0.005,
+          growth,
+          growth + 0.005,
+          growth + 0.01
+        ];
+
+        let html = `<tr><th></th>`;
+        waccValues.forEach(w => {
+          html += `<th>${format.percent(w)}</th>`;
+        });
+        html += `</tr>`;
+
+        growthValues.forEach(g => {
+          html += `<tr><td style="text-align:left;font-weight:500;">${format.percent(g)}</td>`;
+          waccValues.forEach(w => {
+            const tv =
+              projections[projections.length - 1].fcf *
+              (1 + g) /
+              (w - g);
+            const dtv =
+              tv / Math.pow(1 + w, projections.length);
+            let sumPV = 0;
+            projections.forEach((proj, i) => {
+              sumPV += proj.fcf / Math.pow(1 + w, i + 1);
+            });
+            const ev = sumPV + dtv;
+            const equity = ev - valuation.debt + valuation.cash;
+            const value = valuation.shares ? equity / valuation.shares : 0;
+            const isHighlight = w === wacc && g === growth;
+            html += `<td ${
+              isHighlight ? 'class="highlight"' : ""
+            }>${format.currency(value)}</td>`;
+          });
+          html += `</tr>`;
+        });
+
+        els.sensitivityTable.innerHTML = html;
+      }
+
+      // Display financial metrics with PE and EV/EBITDA fix
+      function displayFinancialMetrics() {
+        if (!state.data.ratios.length && !state.data.metrics.length && !state.data.growth.length)
+          return;
+
+        const ratios = state.data.ratios.length ? state.data.ratios[0] : {};
+        const income = state.data.income.length ? state.data.income[0] : {};
+        const profile = Array.isArray(state.data.profile)
+          ? state.data.profile[0]
+          : state.data.profile;
+        const growth = state.data.growth.length ? state.data.growth[0] : {};
+
+        let peRatio = parseFloat(get(ratios, "peRatio"));
+        if (!peRatio || isNaN(peRatio)) {
+          const eps = parseFloat(get(income, "eps", 0));
+          const price = parseFloat(get(profile, "price", 0));
+          if (eps > 0 && price > 0) {
+            peRatio = price / eps;
+          } else {
+            peRatio = null;
+          }
+        }
+
+        let evToEbitda = parseFloat(
+          get(ratios, "enterpriseValueOverEBITDA")
+        );
+        if (!evToEbitda || isNaN(evToEbitda)) {
+          const ebitda = parseFloat(get(income, "ebitda", 0));
+          const mktCap = parseFloat(get(profile, "mktCap", 0));
+          const totalDebt = parseFloat(
+            get(state.data.balance[0], "totalDebt", 0)
+          );
+          const cash = parseFloat(
+            get(state.data.balance[0], "cashAndCashEquivalents", 0)
+          );
+          if (ebitda > 0) {
+            const ev = mktCap + totalDebt - cash;
+            evToEbitda = ev / ebitda;
+          } else {
+            evToEbitda = null;
+          }
+        }
+
+        els.valuationRatios.innerHTML = `
+          <div class="metric-card">
+            <div class="metric-label">P/E Ratio</div>
+            <div class="metric-value">${
+              peRatio ? format.number(peRatio, 2) : "N/A"
+            }</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">EV/EBITDA</div>
+            <div class="metric-value">${
+              evToEbitda ? format.number(evToEbitda, 2) : "N/A"
+            }</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">P/B Ratio</div>
+            <div class="metric-value">${format.number(
+              get(ratios, "priceToBookRatio"),
+              2
+            )}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">P/FCF Ratio</div>
+            <div class="metric-value">${format.number(
+              get(ratios, "priceToFreeCashFlowsRatio"),
+              2
+            )}</div>
+          </div>
+        `;
+
+        els.profitabilityMetrics.innerHTML = `
+          <div class="metric-card">
+            <div class="metric-label">Gross Margin</div>
+            <div class="metric-value">${format.percent(
+              get(ratios, "grossProfitMargin")
+            )}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Operating Margin</div>
+            <div class="metric-value">${format.percent(
+              get(ratios, "operatingProfitMargin")
+            )}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Net Margin</div>
+            <div class="metric-value">${format.percent(
+              get(ratios, "netProfitMargin")
+            )}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">ROE</div>
+            <div class="metric-value">${format.percent(
+              get(ratios, "returnOnEquity")
+            )}</div>
+          </div>
+        `;
+
+        const revGrowth = get(growth, "revenueGrowth", 0);
+        const epsGrowth = get(growth, "epsgrowth", 0);
+        const fcfGrowth = get(growth, "freeCashFlowGrowth", 0);
+
+        els.growthMetrics.innerHTML = `
+          <div class="metric-card">
+            <div class="metric-label">Revenue Growth</div>
+            <div class="metric-value ${revGrowth > 0 ?
+              "value-positive" : "value-negative"}">${format.percent(revGrowth)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">EPS Growth</div>
+            <div class="metric-value ${epsGrowth > 0 ?
+              "value-positive" : "value-negative"}">${format.percent(epsGrowth)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">FCF Growth</div>
+            <div class="metric-value ${fcfGrowth > 0 ?
+              "value-positive" : "value-negative"}">${format.percent(fcfGrowth)}</div>
+          </div>
+        `;
+      }
+
+      // Display investment considerations
+      function displayInvestmentConsiderations() {
+        if (!state.dcfModel) return;
+
+        const { valuation } = state.dcfModel;
+        const ratios = state.data.ratios[0] || {};
+        const growth = state.data.growth[0] || {};
+
+        const insights = [];
+
+        if (valuation.marginOfSafety > 25) {
+          insights.push({
+            title: "Potential Undervaluation",
+            content: `The stock appears to be undervalued by ${format.percent(valuation.marginOfSafety / 100)} based on the DCF analysis.`
+          });
+        } else if (valuation.marginOfSafety < -25) {
+          insights.push({
+            title: "Potential Overvaluation",
+            content: `The stock appears to be overvalued by ${format.percent(Math.abs(valuation.marginOfSafety) / 100)} based on the DCF analysis.`
+          });
+        }
+
+        const revGrowth = get(growth, "revenueGrowth", 0);
+        if (revGrowth > 0.15) {
+          insights.push({
+            title: "Strong Revenue Growth",
+            content: `The company is showing strong revenue growth at ${format.percent(revGrowth)} year-over-year.`
+          });
+        } else if (revGrowth < 0) {
+          insights.push({
+            title: "Declining Revenue",
+            content: `The company is experiencing declining revenue with ${format.percent(revGrowth)} year-over-year change.`
+          });
+        }
+
+        const netMargin = get(ratios, "netProfitMargin", 0);
+        if (netMargin > 0.15) {
+          insights.push({
+            title: "High Profit Margins",
+            content: `The company has strong net profit margins of ${format.percent(netMargin)}.`
+          });
+        } else if (netMargin < 0) {
+          insights.push({
+            title: "Unprofitable Operations",
+            content: `The company is currently unprofitable with a net profit margin of ${format.percent(netMargin)}.`
+          });
+        }
+
+        let html = "";
+        insights.forEach(insight => {
+          html += `
+            <div style="margin-bottom:15px;">
+              <h4 style="font-weight:500;margin-bottom:5px;">${insight.title}</h4>
+              <p>${insight.content}</p>
+            </div>
+          `;
+        });
+
+        html += `
+          <div style="margin-top:20px;padding-top:15px;border-top:1px solid #eee;">
+            <h4 style="font-weight:500;margin-bottom:5px;">Disclaimer</h4>
+            <p style="font-size:14px;color:#666;">This analysis is based on historical data and projections. Future performance may differ from estimates. This tool provides information for educational purposes only and should not be considered investment advice.</p>
+          </div>
+        `;
+
+        els.investmentConsiderations.innerHTML = `
+          <h2 class="section-title">Investment Considerations</h2>
+          ${html}
+        `;
+      }
+
+      // UI Functions
+      function showLoading(show) {
+        els.loadingSection.style.display = show ? "block" : "none";
+        els.analyzeBtn.disabled = show;
+      }
+
+      function showResults(show) {
+        els.resultsSection.style.display = show ? "block" : "none";
+      }
+
+      function showError(message) {
+        els.errorMessage.innerHTML = message;
+        els.errorMessage.style.display = "block";
+      }
+
+      function resetUI() {
+        els.errorMessage.style.display = "none";
+        els.resultsSection.style.display = "none";
+        els.errorMessage.innerHTML = "";
+      }
+
+      // Event Handlers
+      function recalculateDCF() {
+        try {
+          const params = {
+            wacc: parseFloat(els.waccInput.value) / 100,
+            terminalGrowthRate: parseFloat(els.terminalGrowthRateInput.value) / 100,
+            projectionYears: parseInt(els.projectionYearsInput.value),
+            initialRevenueGrowth: parseFloat(els.initialRevenueGrowthInput.value) / 100,
+            targetOperatingMargin: parseFloat(els.targetMarginInput.value) / 100,
+            capexPercent: parseFloat(els.capexPercentInput.value) / 100
+          };
+
+          if (Object.values(params).some(isNaN)) {
+            throw new Error("Invalid parameter values");
+          }
+
+          state.dcfModel = buildDcfModel(params);
+
+          displayValuationSummary();
+          displayDcfResults();
+          displaySensitivityAnalysis();
+          displayInvestmentConsiderations();
+        } catch (error) {
+          showError(`Recalculation failed: ${error.message}`);
+        }
+      }
+
+      // Initialize event listeners
+      function initEventListeners() {
+        els.analyzeBtn.addEventListener("click", analyzeStock);
+        els.tickerInput.addEventListener("keyup", e => {
+          if (e.key === "Enter") analyzeStock();
+        });
+        els.recalculateBtn.addEventListener("click", recalculateDCF);
+        els.recalculateAdvancedBtn.addEventListener("click", recalculateDCF);
+
+        document.querySelectorAll(".parameter-tab").forEach(tab => {
+          tab.addEventListener("click", () => {
+            document
+              .querySelectorAll(".parameter-tab")
+              .forEach(t => t.classList.remove("active"));
+            document
+              .querySelectorAll(".parameter-panel")
+              .forEach(p => p.classList.remove("active"));
+
+            tab.classList.add("active");
+            document
+              .getElementById(tab.dataset.panel)
+              .classList.add("active");
+          });
+        });
+
+        els.toggleDcfDetailsBtn.addEventListener("click", () => {
+          const isVisible =
+            els.dcfDetailsSection.style.display === "block";
+          els.dcfDetailsSection.style.display = isVisible
+            ? "none"
+            : "block";
+          els.toggleDcfDetailsBtn.textContent = isVisible
+            ? "Show Full DCF Model"
+            : "Hide Full DCF Model";
+        });
+      }
+
+      function init() {
+        initEventListeners();
+      }
+
+      init();
+    </script>
+  </body>
 </html>
